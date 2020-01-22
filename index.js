@@ -10,9 +10,50 @@ const main = () => {
 }
 
 const compareOrdersCsvs = (filename1, filename2) => {
-    const equalOrders = [];
-    const differentOrders = {};
-    const ordersNotIncluded = {};
+    const jsonOutput = getJsonOutput(filename1, filename2);
+    writeOutputsToCsv(jsonOutput);
+};
+
+const writeOutputsToCsv = (jsonOutput) => {
+    const { equalOrdersList, differentOrdersJson, ordersNotIncludedJson} = jsonOutput;
+    writeEqualOrdersListToCsv(equalOrdersList);
+    writeDifferentOrdersToCsv(differentOrdersJson);
+    writeOrdesNotIncludedToCsv(ordersNotIncludedJson);
+};
+
+const writeEqualOrdersListToCsv = (equalOrdersList) => {
+    let csv = 'Pedido,Pedido Industrial\n';
+    equalOrdersList.forEach(order => {
+        csv += order + '\n';
+    });
+    fs.writeFileSync('output/equalOrders.csv', csv, 'utf8');
+};
+
+const writeDifferentOrdersToCsv = (differentOrdersJson) => {
+    let csv = 'Pedido,Pedido Industrial,Etapa 1,Status 1,Etapa 2,Status 2\n';
+    Object.keys(differentOrdersJson).forEach(order => {
+        let line = `${order},${differentOrdersJson[order]}`;
+        line = line.slice(0, -1);
+        csv += line + '\n';
+
+    });
+    fs.writeFileSync('output/differentOrders.csv', csv, 'utf8');
+};
+
+const writeOrdesNotIncludedToCsv = (ordersNotIncludedJson) => {
+    let csv = 'Pedido,Pedido Industrial,Etapa,Status\n';
+    Object.keys(ordersNotIncludedJson).forEach(order => {
+        let line = `${order},${ordersNotIncludedJson[order]}`
+        line = line.slice(0, -1);
+        csv += line + '\n';
+    });
+    fs.writeFileSync('output/ordersNotIncluded.csv', csv, 'utf8');
+};
+
+const getJsonOutput = (filename1, filename2) => {
+    const equalOrdersList = [];
+    const differentOrdersJson = {};
+    const ordersNotIncludedJson = {};
     const ordersJson1 = getOrdersJsonFromCsvFile(filename1);
     const ordersJson2 = getOrdersJsonFromCsvFile(filename2);
     
@@ -21,21 +62,14 @@ const compareOrdersCsvs = (filename1, filename2) => {
         const orderJson2Value = ordersJson2[orderId2];
 
         if (!ordersJson1[orderId2]) {
-            ordersNotIncluded[orderId2] = ordersJson2[orderId2];
+            ordersNotIncludedJson[orderId2] = ordersJson2[orderId2];
         } else if (JSON.stringify(orderJson1Value) !== JSON.stringify(orderJson2Value)) {
-            differentOrders[orderId2] = {
-                '1': orderJson1Value,
-                '2': orderJson2Value
-            }
+            differentOrdersJson[orderId2] = `${orderJson1Value}${orderJson2Value}`;
         } else {
-            equalOrders.push(orderId2);
+            equalOrdersList.push(orderId2);
         }
     });
-    return JSON.stringify({
-        'equalOrders': equalOrders,
-        'differentOrders': differentOrders,
-        'ordersNotIncluded': ordersNotIncluded
-    });
+    return { equalOrdersList, differentOrdersJson, ordersNotIncludedJson};
 };
 
 const getOrdersJsonFromCsvFile = (filename) => {
@@ -69,11 +103,11 @@ const getOrdersJson = (linesCsv, columnsIndexes) => {
     const ordersJson = {};
     linesCsv.forEach(lineCsv => {
         const line = lineCsv.split(',');
-        const key = `${line[columnsIndexes['CODIGO PEDIDO']]}_${line[columnsIndexes['CODIGO PEDIDO INDUSTRIAL']]}`;
+        const key = `${line[columnsIndexes['CODIGO PEDIDO']]},${line[columnsIndexes['CODIGO PEDIDO INDUSTRIAL']]}`;
         let value = '';
         
         valueColumns.forEach(columnName => {
-            value += `${line[columnsIndexes[columnName]]}_`;
+            value += `${line[columnsIndexes[columnName]]},`;
         });
         ordersJson[key] = value;
     });
