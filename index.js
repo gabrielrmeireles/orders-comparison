@@ -5,20 +5,20 @@ const fs = require('fs');
 const main = () => {
     const filename1 = process.argv[2];
     const filename2 = process.argv[3];
-    const comparison = compareOrdersCsvs(filename1, filename2);
-    fs.writeFileSync('output.json', comparison, 'utf8');
+    const jsonOutput = compareOrdersCsvs(filename1, filename2);
+    writeOutputsToCsv(jsonOutput);
 }
 
 const compareOrdersCsvs = (filename1, filename2) => {
-    const jsonOutput = getJsonOutput(filename1, filename2);
-    writeOutputsToCsv(jsonOutput);
+    return getJsonOutput(filename1, filename2);
 };
 
 const writeOutputsToCsv = (jsonOutput) => {
-    const { equalOrdersList, differentOrdersJson, ordersNotIncludedJson} = jsonOutput;
+    const { equalOrdersList, differentOrdersJson, ordersNotIncludedJson } = jsonOutput;
     writeEqualOrdersListToCsv(equalOrdersList);
     writeDifferentOrdersToCsv(differentOrdersJson);
     writeOrdesNotIncludedToCsv(ordersNotIncludedJson);
+    writeResumeToCsv(equalOrdersList, differentOrdersJson, ordersNotIncludedJson);
 };
 
 const writeEqualOrdersListToCsv = (equalOrdersList) => {
@@ -30,7 +30,7 @@ const writeEqualOrdersListToCsv = (equalOrdersList) => {
 };
 
 const writeDifferentOrdersToCsv = (differentOrdersJson) => {
-    let csv = 'Pedido,Pedido Industrial,Etapa 1,Status 1,Etapa 2,Status 2\n';
+    let csv = 'Pedido,Pedido Industrial,Etapa em 1,Status em 1,Etapa em 2,Status em 2\n';
     Object.keys(differentOrdersJson).forEach(order => {
         let line = `${order},${differentOrdersJson[order]}`;
         line = line.slice(0, -1);
@@ -50,6 +50,19 @@ const writeOrdesNotIncludedToCsv = (ordersNotIncludedJson) => {
     fs.writeFileSync('output/ordersNotIncluded.csv', csv, 'utf8');
 };
 
+const writeResumeToCsv = (equalOrdersList, differentOrdersJson, ordersNotIncludedJson) => {
+    const totalEqual = equalOrdersList.length;
+    const totalDifferent = Object.keys(differentOrdersJson).length;
+    const totalNotIncluded = Object.keys(ordersNotIncludedJson).length;
+    const total = totalEqual + totalDifferent + totalNotIncluded;
+    const percentEqual = totalEqual / total;
+    const percentDifferent = totalDifferent / total;
+    const percentNotIncluded = totalNotIncluded / total;
+    const percentWrong = percentDifferent + percentNotIncluded;
+    const csv = `total em 1,${total}\n% iguais,${percentEqual}\n% diferentes,${percentDifferent}\n% estao em 1 e nao estao em 2,${percentNotIncluded}\n% total errados,${percentWrong}`;
+    fs.writeFileSync('output/resume.csv', csv, 'utf8');
+};
+
 const getJsonOutput = (filename1, filename2) => {
     const equalOrdersList = [];
     const differentOrdersJson = {};
@@ -57,16 +70,16 @@ const getJsonOutput = (filename1, filename2) => {
     const ordersJson1 = getOrdersJsonFromCsvFile(filename1);
     const ordersJson2 = getOrdersJsonFromCsvFile(filename2);
     
-    Object.keys(ordersJson2).forEach(orderId2 => {
-        const orderJson1Value = ordersJson1[orderId2];
-        const orderJson2Value = ordersJson2[orderId2];
+    Object.keys(ordersJson1).forEach(orderId1 => {
+        const orderJson1Value = ordersJson1[orderId1];
+        const orderJson2Value = ordersJson2[orderId1];
 
-        if (!ordersJson1[orderId2]) {
-            ordersNotIncludedJson[orderId2] = ordersJson2[orderId2];
+        if (!ordersJson2[orderId1]) {
+            ordersNotIncludedJson[orderId1] = ordersJson2[orderId1];
         } else if (JSON.stringify(orderJson1Value) !== JSON.stringify(orderJson2Value)) {
-            differentOrdersJson[orderId2] = `${orderJson1Value}${orderJson2Value}`;
+            differentOrdersJson[orderId1] = `${orderJson1Value}${orderJson2Value}`;
         } else {
-            equalOrdersList.push(orderId2);
+            equalOrdersList.push(orderId1);
         }
     });
     return { equalOrdersList, differentOrdersJson, ordersNotIncludedJson};
