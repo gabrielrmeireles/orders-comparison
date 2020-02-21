@@ -74,8 +74,8 @@ const getJsonOutput = (filename1, filename2) => {
         const orderJson1Value = ordersJson1[orderId1];
         const orderJson2Value = ordersJson2[orderId1];
 
-        if (!ordersJson2[orderId1]) {
-            ordersNotIncludedJson[orderId1] = ordersJson2[orderId1];
+        if (!orderJson2Value) {
+            ordersNotIncludedJson[orderId1] = orderJson1Value;
         } else if (JSON.stringify(orderJson1Value) !== JSON.stringify(orderJson2Value)) {
             differentOrdersJson[orderId1] = `${orderJson1Value}${orderJson2Value}`;
         } else {
